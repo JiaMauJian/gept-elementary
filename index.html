@@ -222,37 +222,42 @@
   .gloss-pop button{background:#4b7d5e;border:none;color:#fff;width:34px;height:34px;border-radius:50%;
     font-size:16px;cursor:pointer;}
 
-  /* ===== 學習單（列印用） ===== */
-  #worksheet{display:none;}
-  @media print{
-    body{background:#fff;padding:0;}
-    .wrap>.screen,header.top,.modal{display:none !important;}
-    #worksheet{display:block !important;}
-    .ws-page{page-break-after:always;padding:0;}
-    .ws-page:last-child{page-break-after:auto;}
-  }
-  #worksheet{font-family:"Times New Roman","PingFang TC","Microsoft JhengHei",serif;color:#000;}
-  .ws-page{width:100%;max-width:760px;margin:0 auto;padding:28px 30px;}
+  /* ===== 學習單列印（頁內覆蓋層，全黑白） ===== */
+  #printOverlay{position:fixed;inset:0;background:#fff;z-index:200;overflow:auto;
+    -webkit-overflow-scrolling:touch;}
+  .po-bar{position:sticky;top:0;display:flex;gap:10px;justify-content:center;
+    padding:12px;background:#fff;border-bottom:1px solid #ccc;}
+  .po-print{padding:12px 20px;font-size:15px;font-weight:800;border:none;border-radius:12px;
+    background:#4b7d5e;color:#fff;cursor:pointer;font-family:inherit;}
+  .po-close{padding:12px 20px;font-size:15px;font-weight:800;border:2px solid #ccc;border-radius:12px;
+    background:#fff;color:#555;cursor:pointer;font-family:inherit;}
+  .po-sheet{color:#000;font-family:"Times New Roman","PingFang TC","Microsoft JhengHei",serif;}
+  .ws-page{width:100%;max-width:760px;margin:0 auto;padding:24px 30px;}
+  .ws-page.pb{page-break-before:always;}
   .ws-head{display:flex;justify-content:space-between;align-items:flex-end;
-    border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:4px;}
-  .ws-head h1{font-size:22px;font-weight:800;letter-spacing:1px;}
-  .ws-head .meta{font-size:12px;text-align:right;line-height:1.6;}
-  .ws-fields{display:flex;gap:24px;font-size:13px;margin:10px 0 4px;}
+    border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:6px;}
+  .ws-head h1{font-size:22px;font-weight:800;letter-spacing:1px;color:#000;}
+  .ws-head .meta{font-size:12px;text-align:right;line-height:1.6;color:#000;}
+  .ws-fields{display:flex;gap:24px;font-size:13px;margin:10px 0 4px;color:#000;}
   .ws-fields .f{flex:1;border-bottom:1px solid #000;padding-bottom:2px;}
-  .ws-note{font-size:12px;color:#333;margin:8px 0 16px;font-style:italic;}
+  .ws-note{font-size:12px;color:#000;margin:8px 0 14px;font-style:italic;}
   table.ws{width:100%;border-collapse:collapse;}
-  table.ws th,table.ws td{border:1px solid #000;padding:9px 10px;font-size:14px;vertical-align:middle;}
-  table.ws th{background:#f0f0f0;font-weight:800;font-size:13px;text-align:left;}
+  table.ws th,table.ws td{border:1px solid #000;padding:9px 10px;font-size:14px;vertical-align:middle;color:#000;}
+  table.ws th{font-weight:800;font-size:13px;text-align:left;}
   table.ws td.num{width:36px;text-align:center;font-weight:700;}
-  table.ws td.cn{width:220px;}
+  table.ws td.cn{width:200px;}
   table.ws td.ans{height:34px;}
-  table.ws td.pos{width:70px;font-size:12px;color:#444;text-align:center;}
-  .ws-ans td.ans{font-family:"Times New Roman",serif;font-weight:700;color:#000;}
-  .ws-score{margin-top:16px;font-size:14px;text-align:right;font-weight:800;}
-  .ws-answns-title{background:#000 !important;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .ws-print-hint{max-width:760px;margin:14px auto 0;padding:12px 16px;background:#eef4fa;
-    border:1px solid #d7e6f4;border-radius:10px;font-family:sans-serif;font-size:13px;color:#3a5a80;}
-  @media print{.ws-print-hint{display:none;}}
+  table.ws td.pos{width:66px;font-size:12px;text-align:center;}
+  .ws-ans td.ans{font-weight:700;}
+  .ws-score{margin-top:16px;font-size:14px;text-align:right;font-weight:800;color:#000;}
+
+  /* 列印時：只顯示覆蓋層，其餘全部隱藏 */
+  @media print{
+    @page{margin:12mm;}
+    body.printing>*{display:none !important;}
+    body.printing>#printOverlay{display:block !important;position:static;overflow:visible;}
+    #printOverlay .po-bar{display:none !important;}
+  }
 </style>
 </head>
 <body>
@@ -963,9 +968,34 @@ function printWorksheet(){
   }
   const withSpell=document.getElementById("wsSpell").checked;
   const rangeLabel={week:"本週學習單",random:"複習學習單",theme:"主題學習單"}[document.getElementById("wsRange").value];
-  buildWorksheetPages(items,withSpell,rangeLabel);
+  const pagesHtml=buildWorksheetPages(items,withSpell,rangeLabel);
   closeWs();
-  setTimeout(()=>window.print(),250);
+  showPrintOverlay(pagesHtml);
+}
+
+// 把學習單放進一個「畫面上可見」的覆蓋層，列印時只顯示它。
+// 這種做法在手機、電腦、以及「儲存成 PDF」時都能正確擷取內容。
+function showPrintOverlay(bodyHtml){
+  let ov=document.getElementById("printOverlay");
+  if(!ov){
+    ov=document.createElement("div");
+    ov.id="printOverlay";
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML=
+    '<div class="po-bar">'
+    +'<button class="po-print" onclick="doPrint()">🖨️ 列印 / 儲存 PDF</button>'
+    +'<button class="po-close" onclick="closePrintOverlay()">關閉</button>'
+    +'</div>'
+    +'<div class="po-sheet">'+bodyHtml+'</div>';
+  document.body.classList.add("printing");
+  window.scrollTo(0,0);
+}
+function doPrint(){ window.print(); }
+function closePrintOverlay(){
+  document.body.classList.remove("printing");
+  const ov=document.getElementById("printOverlay");
+  if(ov)ov.remove();
 }
 
 function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
@@ -979,7 +1009,7 @@ function buildWorksheetPages(items,withSpell,rangeLabel){
   // 題目頁
   let q='<div class="ws-page">'
     +'<div class="ws-head"><h1>🌱 單字花園 · '+rangeLabel+'</h1>'
-    +'<div class="meta">全民英檢初級<br>日期：'+dateStr+'</div></div>'
+    +'<div class="meta">全民英檢初級　日期：'+dateStr+'</div></div>'
     +'<div class="ws-fields"><div class="f">姓名：</div><div class="f">得分：　　／ '+items.length+'</div></div>'
     +'<div class="ws-note">'+note+'</div>'
     +'<table class="ws"><tr><th class="num">#</th><th class="cn">中文</th><th class="pos">詞類</th><th>英文（作答）</th>'+spellHead+'</tr>';
@@ -988,10 +1018,10 @@ function buildWorksheetPages(items,withSpell,rangeLabel){
       +'<td class="pos">'+esc(w.p.split("/")[0])+'</td><td class="ans"></td>'+spellCell+'</tr>';
   });
   q+='</table><div class="ws-score">訂正欄：　　　　　　　　　　　　　　　　　　　　　　</div></div>';
-  // 解答頁
-  let a='<div class="ws-page ws-ans">'
+  // 解答頁（新的一頁）
+  let a='<div class="ws-page ws-ans pb">'
     +'<div class="ws-head"><h1>✓ 學習單 · 解答</h1>'
-    +'<div class="meta">日期：'+dateStr+'<br>共 '+items.length+' 題</div></div>'
+    +'<div class="meta">日期：'+dateStr+'　共 '+items.length+' 題</div></div>'
     +'<div class="ws-note">給家長批改用。孩子作答時請勿看這一頁。</div>'
     +'<table class="ws"><tr><th class="num">#</th><th class="cn">中文</th><th class="pos">詞類</th><th>正確答案</th></tr>';
   items.forEach((w,k)=>{
@@ -999,11 +1029,8 @@ function buildWorksheetPages(items,withSpell,rangeLabel){
       +'<td class="pos">'+esc(w.p.split("/")[0])+'</td><td class="ans">'+esc(w.w)+'</td></tr>';
   });
   a+='</table></div>';
-  document.getElementById("worksheet").innerHTML=q+a;
+  return q+a;
 }
-
-function resetWorksheet(){document.getElementById("worksheet").innerHTML="";}
-window.addEventListener("afterprint",resetWorksheet);
 
 /* warm up voices */
 if('speechSynthesis' in window){window.speechSynthesis.getVoices();window.speechSynthesis.onvoiceschanged=()=>{};}
