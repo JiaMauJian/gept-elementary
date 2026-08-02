@@ -275,10 +275,16 @@
   /* 列印時：只顯示覆蓋層，其餘全部隱藏 */
   @media print{
     @page{margin:10mm;}
-    /* 列印時隱藏操作按鈕列 */
-    .po-bar{display:none !important;}
+    /* 列印時徹底隱藏操作按鈕列（多重保險） */
+    .no-print,.po-bar{
+      display:none !important;
+      visibility:hidden !important;
+      height:0 !important;
+      overflow:hidden !important;
+    }
     /* 覆蓋層在列印時攤平顯示 */
     #printRoot{position:static !important;}
+    .po-sheet{margin-top:0 !important;}
   }
 </style>
 </head>
@@ -1113,7 +1119,7 @@ function showPrintOverlay(bodyHtml){
   _savedScrollY=window.scrollY||0;
   document.body.innerHTML=
     '<div id="printRoot">'
-    +'<div class="po-bar">'
+    +'<div class="po-bar no-print">'
     +'<button class="po-print" onclick="doPrint()">🖨️ 列印 / 儲存 PDF</button>'
     +'<button class="po-close" onclick="closePrintOverlay()">關閉，返回</button>'
     +'</div>'
