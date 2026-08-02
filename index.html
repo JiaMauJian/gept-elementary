@@ -231,33 +231,39 @@
     background:#4b7d5e;color:#fff;cursor:pointer;font-family:inherit;}
   .po-close{padding:12px 20px;font-size:15px;font-weight:800;border:2px solid #ccc;border-radius:12px;
     background:#fff;color:#555;cursor:pointer;font-family:inherit;}
-  .po-sheet{color:#000;font-family:"Times New Roman","PingFang TC","Microsoft JhengHei",serif;}
-  .ws-page{width:100%;max-width:760px;margin:0 auto;padding:24px 30px;}
+  .po-sheet{color:#000;font-family:Georgia,"Noto Serif TC","PingFang TC","Songti TC","Microsoft JhengHei",serif;}
+  .ws-page{width:100%;max-width:760px;margin:0 auto;padding:22px 30px;}
   .ws-page.pb{page-break-before:always;}
   .ws-head{display:flex;justify-content:space-between;align-items:flex-end;
     border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:6px;}
-  .ws-head h1{font-size:22px;font-weight:800;letter-spacing:1px;color:#000;}
+  .ws-head h1{font-size:22px;font-weight:700;letter-spacing:.5px;color:#000;}
   .ws-head .meta{font-size:12px;text-align:right;line-height:1.6;color:#000;}
   .ws-fields{display:flex;gap:24px;font-size:13px;margin:10px 0 4px;color:#000;}
   .ws-fields .f{flex:1;border-bottom:1px solid #000;padding-bottom:2px;}
-  .ws-note{font-size:12px;color:#000;margin:8px 0 14px;font-style:italic;}
+  .ws-note{font-size:12px;color:#000;margin:8px 0 12px;font-style:italic;}
   table.ws{width:100%;border-collapse:collapse;}
   table.ws th,table.ws td{border:1px solid #000;padding:9px 10px;font-size:14px;vertical-align:middle;color:#000;}
-  table.ws th{font-weight:800;font-size:13px;text-align:left;}
+  table.ws th{font-weight:700;font-size:13px;text-align:left;}
   table.ws td.num{width:36px;text-align:center;font-weight:700;}
   table.ws td.cn{width:200px;}
   table.ws td.ans{height:34px;}
   table.ws td.pos{width:66px;font-size:12px;text-align:center;}
   .ws-ans td.ans{font-weight:700;}
-  .ws-score{margin-top:16px;font-size:14px;text-align:right;font-weight:800;color:#000;}
+  .ws-score{margin-top:16px;font-size:14px;text-align:right;font-weight:700;color:#000;}
 
-  /* 主題字表 / 範文 / 仿寫 */
-  table.ws.wl td.en{font-weight:700;width:150px;}
-  table.ws.wl td.pos{width:56px;font-size:11px;text-align:center;color:#000;}
-  table.ws.wl td.cn{}
+  /* 主題字表（兩欄並排、緊湊、全黑白） */
+  table.ws.wl2{table-layout:fixed;}
+  table.ws.wl2 th,table.ws.wl2 td{padding:5px 8px;font-size:13.5px;}
+  table.ws.wl2 td.num,table.ws.wl2 th.num{width:30px;text-align:center;font-weight:700;font-size:12px;}
+  table.ws.wl2 td.en{font-weight:700;}
+  table.ws.wl2 td.cn{font-size:13px;}
+  /* 中間分隔欄：無框線的空隙 */
+  table.ws.wl2 td.gap,table.ws.wl2 th.gap{width:14px;border-top:none;border-bottom:none;
+    border-left:none;border-right:none;}
+  /* 範文 / 仿寫 */
   .essay{font-size:16px;line-height:2.1;color:#000;padding:8px 4px 4px;margin-bottom:10px;}
-  .essay u{font-weight:800;text-underline-offset:3px;}
-  .ws-write-title{font-size:13px;font-weight:800;color:#000;margin:8px 0 10px;}
+  .essay b{font-weight:700;}
+  .ws-write-title{font-size:13px;font-weight:700;color:#000;margin:8px 0 10px;}
   .write-lines{margin-top:4px;}
   .wline{border-bottom:1px solid #000;height:30px;}
 
@@ -1002,34 +1008,40 @@ function buildThemeSheet(themeName,start,end){
   const dateStr=new Date().toLocaleDateString("zh-TW");
   const words=[];
   for(let i=start;i<end;i++)words.push(WORDS[i]);
-  // 第一頁起：完整字表（分兩欄排，省紙）
+  // 字表：兩欄並排（左右各一半），移除詞性欄，省紙
+  const half=Math.ceil(words.length/2);
   let rows="";
-  words.forEach((w,k)=>{
-    rows+='<tr><td class="num">'+(k+1)+'</td><td class="en">'+esc(w.w)+'</td>'
-      +'<td class="pos">'+esc(w.p.split("/")[0])+'</td><td class="cn">'+esc(firstMeaning(w.c))+'</td></tr>';
-  });
+  for(let r=0;r<half;r++){
+    const L=words[r], Li=r+1;
+    const Ri=r+half+1, R=words[r+half];
+    let left='<td class="num">'+Li+'</td><td class="en">'+esc(L.w)+'</td><td class="cn">'+esc(firstMeaning(L.c))+'</td>';
+    let right = R
+      ? '<td class="num">'+Ri+'</td><td class="en">'+esc(R.w)+'</td><td class="cn">'+esc(firstMeaning(R.c))+'</td>'
+      : '<td class="num"></td><td class="en"></td><td class="cn"></td>';
+    rows+='<tr>'+left+'<td class="gap"></td>'+right+'</tr>';
+  }
   let page='<div class="ws-page">'
     +'<div class="ws-head"><h1>🌱 單字花園 · '+esc(themeName)+'（單字表）</h1>'
     +'<div class="meta">全民英檢初級　日期：'+dateStr+'<br>共 '+words.length+' 字</div></div>'
-    +'<div class="ws-note">先讀熟這些單字，再看下一頁的小短文，最後自己也寫一篇！</div>'
-    +'<table class="ws wl"><tr><th class="num">#</th><th class="en">英文</th><th class="pos">詞類</th><th class="cn">中文</th></tr>'
+    +'<div class="ws-note">先讀熟這些單字，再看小短文，最後自己也寫一篇！</div>'
+    +'<table class="ws wl2">'
+    +'<tr><th class="num">#</th><th class="en">英文</th><th class="cn">中文</th>'
+    +'<th class="gap"></th><th class="num">#</th><th class="en">英文</th><th class="cn">中文</th></tr>'
     +rows+'</table></div>';
 
   // 範本短文頁（若該主題有短文）
   const essay=THEME_ESSAYS[themeName];
   if(essay){
-    // 把 [word] 變成底線標記
-    const essayHtml=essay.replace(/\[([^\]]+)\]/g,function(m,w){return '<u>'+w+'</u>';});
+    const essayHtml=essay.replace(/\[([^\]]+)\]/g,function(m,w){return '<b>'+w+'</b>';});
     page+='<div class="ws-page pb">'
       +'<div class="ws-head"><h1>✍️ 小短文範本</h1>'
       +'<div class="meta">主題：'+esc(themeName)+'</div></div>'
-      +'<div class="ws-note">讀一讀這篇短文。<b>有底線的字</b>就是這個主題的單字。</div>'
+      +'<div class="ws-note">讀一讀這篇短文。<b>粗體字</b>就是這個主題的單字。</div>'
       +'<div class="essay">'+essayHtml+'</div>'
       +'<div class="ws-write-title">換你寫一篇！用這個主題的單字，寫一篇短短的小文章（4～6 句就好）：</div>'
       +'<div class="write-lines">'+writeLines(9)+'</div>'
       +'</div>';
   }else{
-    // 沒有範文，只給仿寫區
     page+='<div class="ws-page pb">'
       +'<div class="ws-head"><h1>✍️ 換你寫一篇</h1>'
       +'<div class="meta">主題：'+esc(themeName)+'</div></div>'
