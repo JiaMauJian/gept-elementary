@@ -274,10 +274,11 @@
 
   /* 列印時：只顯示覆蓋層，其餘全部隱藏 */
   @media print{
-    @page{margin:12mm;}
-    body.printing>*{display:none !important;}
-    body.printing>#printOverlay{display:block !important;position:static;overflow:visible;}
-    #printOverlay .po-bar{display:none !important;}
+    @page{margin:10mm;}
+    /* 列印時隱藏操作按鈕列 */
+    .po-bar{display:none !important;}
+    /* 覆蓋層在列印時攤平顯示 */
+    #printRoot{position:static !important;}
   }
 </style>
 </head>
