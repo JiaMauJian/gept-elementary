@@ -332,18 +332,12 @@
       </div>
     </div>
 
-    <div class="grid2">
-      <div class="stat"><div class="n" id="todayNew">15</div><div class="l">今天的新字</div></div>
-      <div class="stat"><div class="n" id="todayReview">0</div><div class="l">今天要複習</div></div>
-    </div>
-
-    <button class="btn btn-lg" id="startBtn" onclick="startSession()">開始今天的學習 →</button>
-    <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openHelp()">怎麼使用？給家長的說明</button>
-    <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="makeWorksheet()">🖨️ 列印本週學習單（手寫測驗）</button>
+    <button class="btn btn-ghost" style="width:100%" onclick="openHelp()">怎麼使用？給家長的說明</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="makeWorksheet()">🖨️ 列印主題測驗卷</button>
     <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="openReading()">📖 閱讀區（讀短文、生字可點）</button>
 
-    <div class="sec"><div class="bar"></div><h3>學習地圖</h3></div>
-    <p class="hint">點任何一個主題，就能單獨練那一類的單字（不會影響每天的學習進度）。</p>
+    <div class="sec"><div class="bar"></div><h3>選一個主題開始學</h3></div>
+    <p class="hint">點一個主題就能開始學。學到一半離開沒關係，下次可以「接著上次」繼續，或「從頭複習」。</p>
     <div id="themeMap"></div>
 
     <footer>
@@ -386,12 +380,23 @@
 <div class="modal" id="helpModal">
   <div class="sheet">
     <h3>🌱 給家長的使用說明</h3>
-    <p><b>每天怎麼進行：</b>點「開始今天的學習」，孩子會先看到今天的 15 個新字（先聽發音、想中文、翻開對答案、誠實選「還不會 / 我會了」），接著複習之前該回顧的舊字，最後做一個小測驗。</p>
-    <p><b>間隔重複：</b>選「我會了」的字，會隔比較久才再出現；選「還不會」的字，很快會再考。這是最有效的記憶方式，請鼓勵孩子誠實作答，不用怕選錯。</p>
-    <p><b>發音：</b>點藍色喇叭就會唸出單字，用的是這台裝置內建的英語發音，不需要網路以外的東西。</p>
-    <p><b>順序：</b>先學看得到、有畫面的字（食物、動物、身體…），後面才是比較抽象的字。一整個學年每天做，就能走完全部。</p>
-    <p><b>例句：</b>例句是輔助理解用的參考句，句子簡單、文法正確，幫助孩子把單字放進情境。</p>
+    <p><b>怎麼進行：</b>從「選一個主題開始學」點一個主題（食物、動物、學校…），孩子會一次學一小批單字（先聽發音、想中文、翻開對答案，誠實選「還不會 / 我會了」），最後做一個小測驗。</p>
+    <p><b>學到一半沒關係：</b>每個主題都會記住學到第幾個字。下次再點同一個主題，可以選「接著上次」繼續，或「從頭複習」。主題內是固定順序，方便接續。</p>
+    <p><b>間隔重複：</b>選「我會了」的字，會隔比較久才再出現；選「還不會」的字，很快會再考。請鼓勵孩子誠實作答，不用怕選錯。</p>
+    <p><b>發音：</b>點藍色喇叭就會唸出單字，用的是這台裝置內建的英語發音。</p>
+    <p><b>花園：</b>每學會一個字，花園就會長出植物；學越多、花園越茂盛。</p>
     <button class="btn btn-ghost" onclick="closeHelp()">我懂了</button>
+  </div>
+</div>
+
+<!-- 接著上次 / 從頭開始 選擇 modal -->
+<div class="modal" id="resumeModal">
+  <div class="sheet">
+    <h3>📖 <span id="resumeTitle"></span></h3>
+    <p id="resumeInfo" style="margin-bottom:16px"></p>
+    <button class="btn btn-lg" id="resumeContinueBtn" onclick="resumeContinue()">接著上次</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="resumeRestart()">從頭複習（第 1 個開始）</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:10px" onclick="closeResume()">取消</button>
   </div>
 </div>
 
@@ -431,8 +436,8 @@ const KEY = "wordgarden_v1";
 /* ---------- storage ---------- */
 function today(){const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
 function load(){
-  try{const s=JSON.parse(localStorage.getItem(KEY));if(s)return s;}catch(e){}
-  return {cursor:0, cards:{}, streak:0, lastDay:null, doneToday:false};
+  try{const s=JSON.parse(localStorage.getItem(KEY));if(s){if(!s.themeProgress)s.themeProgress={};return s;}}catch(e){}
+  return {cursor:0, cards:{}, streak:0, lastDay:null, doneToday:false, themeProgress:{}};
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(STATE));}
 let STATE = load();
@@ -549,13 +554,6 @@ function renderHome(){
   document.getElementById("pctTxt").textContent=pct+"%";
   document.getElementById("masteredTxt").textContent="熟練 "+masteredCount()+" 字";
   document.getElementById("streakN").textContent=STATE.streak;
-  const reviews=dueList().length;
-  document.getElementById("todayReview").textContent=reviews;
-  const remainingNew=WORDS.length-STATE.cursor;
-  document.getElementById("todayNew").textContent=Math.min(NEW_PER_DAY,remainingNew);
-  const btn=document.getElementById("startBtn");
-  if(STATE.doneToday){btn.textContent="今天已完成 ✓ 再練一次";btn.classList.add("done");}
-  else{btn.textContent="開始今天的學習 →";btn.classList.remove("done");}
   renderGarden(learned);
   // theme map
   const map=document.getElementById("themeMap");map.innerHTML="";
@@ -564,16 +562,20 @@ function renderHome(){
     const start=idx, end=idx+info.count; idx=end;
     const learnedIn=Object.keys(STATE.cards).filter(i=>i>=start&&i<end).length;
     const done=learnedIn>=info.count;
-    const cur=(STATE.cursor>=start&&STATE.cursor<end);
+    const prog=STATE.themeProgress[name]||0;           // 這個主題學到第幾個（0=還沒開始）
+    const inProgress=(prog>0 && prog<info.count);
     const row=document.createElement("button");
     row.className="stat themeRow";row.style.marginBottom="10px";
-    row.setAttribute("aria-label","練習主題："+name);
-    row.onclick=function(){startThemePractice(start,end,name);};
+    row.setAttribute("aria-label","學習主題："+name);
+    row.onclick=function(){enterTheme(start,end,name);};
+    const mark=done?"✅ ":(inProgress?"📖 ":"");
+    const sub=info.region==="core"?"單字卡":"例句填空 · 在句子裡學";
+    const subLine=inProgress?(sub+' · 上次到第 '+prog+' 個'):sub;
     row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center">'
-      +'<div style="text-align:left"><div style="font-weight:800;font-size:15px">'+(done?"✅ ":cur?"📖 ":"")+name+'</div>'
-      +'<div class="l">'+(info.region==="core"?"單字卡":"例句填空 · 在句子裡學")+' · '+info.count+' 字</div></div>'
+      +'<div style="text-align:left"><div style="font-weight:800;font-size:15px">'+mark+name+'</div>'
+      +'<div class="l">'+subLine+'</div></div>'
       +'<div style="display:flex;align-items:center;gap:10px">'
-        +'<span style="font-weight:900;color:'+(done?"var(--leaf)":"var(--soft)")+'">'+learnedIn+'/'+info.count+'</span>'
+        +'<span style="font-weight:900;color:'+(done?"var(--leaf)":"var(--soft)")+'">'+prog+'/'+info.count+'</span>'
         +'<span style="color:var(--sky);font-weight:900;font-size:18px">▶</span>'
       +'</div></div>';
     map.appendChild(row);
@@ -599,14 +601,55 @@ function startSession(){
   show("study");
   nextCard();
 }
-function startThemePractice(start,end,name){
-  // 該主題全部單字，打亂後練習（每回最多 20 字，避免太長）
-  const all=[];
-  for(let i=start;i<end;i++) all.push(i);
-  const picked=shuffle(all).slice(0,Math.min(20,all.length));
-  const queue=picked.map(i=>({i,kind:(STATE.cards[i]?"review":"new")}));
+const THEME_BATCH=15; // 每回合最多學幾個字
+
+// 點主題後：決定要「接著上次」還是「從頭開始」
+let _pendingTheme=null;
+function enterTheme(start,end,name){
+  const count=end-start;
+  const prog=STATE.themeProgress[name]||0;
+  if(prog>0 && prog<count){
+    // 學到一半，讓孩子選
+    _pendingTheme={start,end,name};
+    document.getElementById("resumeTitle").textContent=name;
+    document.getElementById("resumeInfo").textContent="上次學到第 "+prog+" 個（共 "+count+" 個）。要從哪裡開始？";
+    document.getElementById("resumeContinueBtn").textContent="接著上次（從第 "+(prog+1)+" 個）";
+    document.getElementById("resumeModal").classList.add("show");
+  }else{
+    // 沒學過，或已全部學完 → 從頭開始
+    startThemePractice(start,end,name,0);
+  }
+}
+function resumeContinue(){
+  document.getElementById("resumeModal").classList.remove("show");
+  if(_pendingTheme){
+    const p=STATE.themeProgress[_pendingTheme.name]||0;
+    startThemePractice(_pendingTheme.start,_pendingTheme.end,_pendingTheme.name,p);
+  }
+}
+function resumeRestart(){
+  document.getElementById("resumeModal").classList.remove("show");
+  if(_pendingTheme){
+    startThemePractice(_pendingTheme.start,_pendingTheme.end,_pendingTheme.name,0);
+  }
+}
+function closeResume(){ document.getElementById("resumeModal").classList.remove("show"); }
+
+// 從主題的第 offset 個字開始，固定字母順序，最多學 THEME_BATCH 個
+function startThemePractice(start,end,name,offset){
+  offset=offset||0;
+  const from=start+offset;
+  const queue=[];
+  for(let i=from;i<end && queue.length<THEME_BATCH;i++){
+    queue.push({i,kind:(STATE.cards[i]?"review":"new")});
+  }
+  if(queue.length===0){
+    // 這個主題已經全部學完 → 從頭複習
+    for(let i=start;i<end && queue.length<THEME_BATCH;i++) queue.push({i,kind:"review"});
+    offset=0;
+  }
   SESSION={queue,pos:0,phase:"learn",quizPool:[],wrong:[],practice:true,themeName:name,
-           poolStart:start,poolEnd:end};
+           poolStart:start,poolEnd:end,themeOffset:offset};
   SESSION.allWords=queue.map(q=>q.i);
   show("study");
   document.getElementById("phasePill").textContent="主題："+name;
@@ -813,9 +856,13 @@ function answer(chosen,correct){
 /* ---------- finish ---------- */
 function finishSession(){
   const practice=SESSION && SESSION.practice;
-  if(!practice && !STATE.doneToday){
-    STATE.doneToday=true;
-    STATE.streak=(STATE.streak||0)+1;
+  if(practice && SESSION.themeName){
+    // 更新這個主題的進度（學到第幾個），取較大值避免倒退
+    const reached=(SESSION.themeOffset||0)+SESSION.allWords.length;
+    const prev=STATE.themeProgress[SESSION.themeName]||0;
+    STATE.themeProgress[SESSION.themeName]=Math.max(prev,reached);
+    // 完成一回合也累積連續天數（讓花園與 streak 仍有意義）
+    if(!STATE.doneToday){STATE.doneToday=true;STATE.streak=(STATE.streak||0)+1;}
     save();
   }
   const learned=learnedCount();
@@ -827,9 +874,13 @@ function finishSession(){
     : '<p>小測驗全部答對，太棒了！</p>';
   let statCards, head, emoji;
   if(practice){
-    emoji="🎯"; head="「"+SESSION.themeName+"」練習完成！";
-    statCards='<div class="stat"><div class="n">'+SESSION.allWords.length+'</div><div class="l">這回練習字數</div></div>'
-             +'<div class="stat"><div class="n">'+(SESSION.allWords.length-SESSION.wrong.length)+'</div><div class="l">測驗答對</div></div>';
+    emoji="🎯"; head="「"+SESSION.themeName+"」這一批完成！";
+    const reached=STATE.themeProgress[SESSION.themeName]||0;
+    const total=SESSION.poolEnd-SESSION.poolStart;
+    const doneAll=reached>=total;
+    statCards='<div class="stat"><div class="n">'+reached+'/'+total+'</div><div class="l">這個主題進度</div></div>'
+             +'<div class="stat"><div class="n">'+(SESSION.allWords.length-SESSION.wrong.length)+'/'+SESSION.allWords.length+'</div><div class="l">測驗答對</div></div>';
+    SESSION._doneAll=doneAll;
   }else{
     emoji="🌻"; head="今天完成了！";
     statCards='<div class="stat"><div class="n">'+learned+'</div><div class="l">總共學過</div></div>'
@@ -841,8 +892,11 @@ function finishSession(){
     +'<h2>'+head+'</h2>'
     + wrongTxt
     +'<div class="grid2" style="margin:20px 0">'+statCards+'</div>'
-    + (practice?'<button class="btn btn-lg" onclick="startThemePractice('+SESSION.poolStart+','+SESSION.poolEnd+',\''+SESSION.themeName.replace(/'/g,"\\'")+'\')">再練一次這個主題</button>'
-                +'<button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="quitSession()">回到首頁</button>'
+    + (practice?(SESSION._doneAll
+                  ?'<p style="color:var(--leaf-d);font-weight:800">🎉 這個主題全部學完了！</p>'
+                   +'<button class="btn btn-lg" onclick="quitSession()">回到首頁</button>'
+                  :'<button class="btn btn-lg" onclick="startThemePractice('+SESSION.poolStart+','+SESSION.poolEnd+',\''+SESSION.themeName.replace(/'/g,"\\'")+'\','+(STATE.themeProgress[SESSION.themeName]||0)+')">繼續學下一批 →</button>'
+                   +'<button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="quitSession()">先回首頁（進度已保存）</button>')
               :'<button class="btn btn-lg" onclick="quitSession()">回到首頁</button>')
     +'</div>';
 }
