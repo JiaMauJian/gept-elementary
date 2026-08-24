@@ -242,6 +242,7 @@
   .ws-fields .f{flex:1;border-bottom:1px solid #000;padding-bottom:2px;}
   .ws-note{font-size:12px;color:#000;margin:8px 0 12px;font-style:italic;}
   table.ws{width:100%;border-collapse:collapse;}
+  table.ws tr{page-break-inside:avoid;break-inside:avoid;}
   table.ws th,table.ws td{border:1px solid #000;padding:9px 10px;font-size:14px;vertical-align:middle;color:#000;}
   table.ws th{font-weight:700;font-size:13px;text-align:left;}
   table.ws td.num{width:36px;text-align:center;font-weight:700;}
@@ -252,13 +253,12 @@
   .ws-score{margin-top:16px;font-size:14px;text-align:right;font-weight:700;color:#000;}
 
   /* 主題測驗（3 欄，看中文填英文） */
-  table.ws.quiz3{table-layout:fixed;}
-  table.ws.quiz3 th,table.ws.quiz3 td{padding:6px 7px;font-size:13px;}
-  table.ws.quiz3 td.num,table.ws.quiz3 th.num{width:26px;text-align:center;font-weight:700;font-size:11px;}
-  table.ws.quiz3 td.cn,table.ws.quiz3 th.cn{width:88px;font-size:12.5px;line-height:1.35;word-break:break-all;}
-  table.ws.quiz3 td.blank,table.ws.quiz3 th.blank{font-size:11px;color:#000;}
-  table.ws.quiz3 td.blank{height:26px;}
-  table.ws.quiz3 td.gap,table.ws.quiz3 th.gap{width:12px;border:none;}
+  table.ws.quiz4{table-layout:fixed;}
+  table.ws.quiz4 th,table.ws.quiz4 td{padding:5px 6px;font-size:12.5px;}
+  table.ws.quiz4 td.cn,table.ws.quiz4 th.cn{width:88px;font-size:12px;line-height:1.35;word-break:break-all;}
+  table.ws.quiz4 td.blank,table.ws.quiz4 th.blank{font-size:10.5px;color:#000;}
+  table.ws.quiz4 td.blank{height:24px;}
+  table.ws.quiz4 td.gap,table.ws.quiz4 th.gap{width:10px;border:none;}
   /* 解答（4 欄，壓成一頁） */
   table.ws.ansgrid{table-layout:fixed;}
   table.ws.ansgrid td{padding:4px 7px;font-size:12.5px;}
@@ -1089,9 +1089,9 @@ function buildThemeSheet(themeName,start,end,breakBefore){
   for(let i=start;i<end;i++)words.push(WORDS[i]);
   const N=words.length;
 
-  // ===== 測驗頁：3 欄，看中文填英文（英文格空白） =====
-  // 依欄數把題目「直向」排：第1欄放前 1/3，第2欄放中 1/3，第3欄放後 1/3
-  const cols=3;
+  // ===== 測驗頁：4 欄，看中文填英文（英文格空白） =====
+  // 依欄數把題目「直向」排：第1欄放前 1/4，第2欄放中前段，以此類推
+  const cols=4;
   const per=Math.ceil(N/cols);
   let rows="";
   for(let r=0;r<per;r++){
@@ -1100,28 +1100,20 @@ function buildThemeSheet(themeName,start,end,breakBefore){
       const idx=c*per+r;
       if(idx<N){
         const w=words[idx];
-        tds+='<td class="num">'+(idx+1)+'</td>'
-          +'<td class="cn">'+esc(firstMeaning(w.c))+'</td>'
+        tds+='<td class="cn">'+esc(firstMeaning(w.c))+'</td>'
           +'<td class="blank"></td>';
       }else{
-        tds+='<td class="num"></td><td class="cn"></td><td class="blank"></td>';
+        tds+='<td class="cn"></td><td class="blank"></td>';
       }
       if(c<cols-1)tds+='<td class="gap"></td>';
     }
     rows+='<tr>'+tds+'</tr>';
   }
-  let head3="";
-  for(let c=0;c<cols;c++){
-    head3+='<th class="num">#</th><th class="cn">中文</th><th class="blank">英文（作答）</th>';
-    if(c<cols-1)head3+='<th class="gap"></th>';
-  }
   let page='<div class="ws-page'+(breakBefore?' pb':'')+'">'
     +'<div class="ws-head"><h1>🌱 '+esc(themeName)+'　單字測驗</h1>'
     +'<div class="meta">全民英檢初級　日期：'+dateStr+'<br>共 '+N+' 題</div></div>'
-    +'<div class="ws-fields"><div class="f">姓名：</div><div class="f">得分：　　／ '+N+'</div></div>'
-    +'<div class="ws-note">看中文，把英文單字寫在空格裡。</div>'
-    +'<table class="ws quiz3">'
-    +'<tr>'+head3+'</tr>'+rows+'</table></div>';
+    +'<table class="ws quiz4">'
+    +rows+'</table></div>';
 
   // ===== 範本短文 + 仿寫頁 =====
   const essay=THEME_ESSAYS[themeName];
