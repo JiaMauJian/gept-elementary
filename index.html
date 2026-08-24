@@ -410,6 +410,7 @@
       <option value="week">這週學過的新字（驗收當週進度）</option>
       <option value="random">隨機複習（從學過的字裡抽）</option>
       <option value="theme">挑一個主題來考</option>
+      <option value="all">列印全部主題（每個主題分開一份）</option>
     </select>
     <div id="wsThemeWrap" style="display:none">
       <label class="wsopt-label">選主題</label>
@@ -1056,6 +1057,18 @@ function printWorksheet(){
     showPrintOverlay(pagesHtml);
     return;
   }
+  // 全部主題：每個主題各自的測驗卷依序印出，主題之間強制分頁
+  if(range==="all"){
+    let idx=0,pagesHtml="",first=true;
+    for(const [name,info] of Object.entries(THEMES)){
+      const start=idx,end=idx+info.count;idx=end;
+      pagesHtml+=buildThemeSheet(name,start,end,!first);
+      first=false;
+    }
+    closeWs();
+    showPrintOverlay(pagesHtml);
+    return;
+  }
   // 其他模式：維持原本的「看中文寫英文」測驗
   const items=collectWorksheetItems();
   if(!items||items.length===0){
@@ -1070,7 +1083,7 @@ function printWorksheet(){
 }
 
 // 主題字表 + 範本短文 + 仿寫區
-function buildThemeSheet(themeName,start,end){
+function buildThemeSheet(themeName,start,end,breakBefore){
   const dateStr=new Date().toLocaleDateString("zh-TW");
   const words=[];
   for(let i=start;i<end;i++)words.push(WORDS[i]);
@@ -1102,7 +1115,7 @@ function buildThemeSheet(themeName,start,end){
     head3+='<th class="num">#</th><th class="cn">中文</th><th class="blank">英文（作答）</th>';
     if(c<cols-1)head3+='<th class="gap"></th>';
   }
-  let page='<div class="ws-page">'
+  let page='<div class="ws-page'+(breakBefore?' pb':'')+'">'
     +'<div class="ws-head"><h1>🌱 '+esc(themeName)+'　單字測驗</h1>'
     +'<div class="meta">全民英檢初級　日期：'+dateStr+'<br>共 '+N+' 題</div></div>'
     +'<div class="ws-fields"><div class="f">姓名：</div><div class="f">得分：　　／ '+N+'</div></div>'
