@@ -902,7 +902,12 @@ function clozeAnswer(chosen,correct){
   opterEl.insertAdjacentHTML('beforebegin',
     '<div class="cloze-fb '+(ok?"good":"bad")+'" id="clozeFb">'
     +(ok?"答對了！":"再記一下～")+'　'+w.w+'：'+w.c+'</div>');
-  setTimeout(()=>{ rateAuto(correct,ok); },1400);
+  // 不自動跳題：讓小朋友看清楚對錯後，自己按「下一題」
+  opterEl.insertAdjacentHTML('afterend',
+    '<button class="btn btn-lg" id="nextBtn" style="margin-top:14px">下一題 →</button>');
+  const nb=document.getElementById("nextBtn");
+  nb.onclick=()=>{nb.disabled=true;rateAuto(correct,ok);};
+  nb.focus();
 }
 function rateAuto(idx,ok){
   // 與 rate() 相同的間隔重複更新，但用於填空自動評分
@@ -981,7 +986,11 @@ function answer(chosen,correct){
     let c=STATE.cards[correct]||{box:0,due:today()};
     c.box=Math.max(0,c.box-1);c.due=addDays(BOX_DAYS[c.box]);STATE.cards[correct]=c;save();
   }
-  setTimeout(()=>{SESSION.qpos++;renderQuiz();},900);
+  document.getElementById("opts").insertAdjacentHTML('afterend',
+    '<button class="btn btn-lg" id="nextBtn" style="margin-top:14px">下一題 →</button>');
+  const nb=document.getElementById("nextBtn");
+  nb.onclick=()=>{nb.disabled=true;SESSION.qpos++;renderQuiz();};
+  nb.focus();
 }
 
 /* ---------- finish ---------- */
